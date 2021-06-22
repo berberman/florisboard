@@ -30,13 +30,13 @@ value class SuggestionList private constructor(
         }
 
         /*external*/ fun nativeInitialize(maxSize: Int): NativePtr = TODO()
-        /*external*/ fun nativeDispose(nativePtr: NativePtr) = TODO()
+        /*external*/ fun nativeDispose(nativePtr: NativePtr) : Nothing = TODO()
         /*external*/ fun nativeAdd(nativePtr: NativePtr, word: Word, freq: Freq): Boolean = TODO()
-        /*external*/ fun nativeClear(nativePtr: NativePtr) = TODO()
+        /*external*/ fun nativeClear(nativePtr: NativePtr) : Nothing = TODO()
         /*external*/ fun nativeContains(nativePtr: NativePtr, element: Word): Boolean = TODO()
         /*external*/ fun nativeGetOrNull(nativePtr: NativePtr, index: Int): Word? = TODO()
         /*external*/ fun nativeGetIsPrimaryTokenAutoInsert(nativePtr: NativePtr): Boolean = TODO()
-        /*external*/ fun nativeSetIsPrimaryTokenAutoInsert(nativePtr: NativePtr, v: Boolean) = TODO()
+        /*external*/ fun nativeSetIsPrimaryTokenAutoInsert(nativePtr: NativePtr, v: Boolean) : Nothing = TODO()
         /*external*/ fun nativeSize(nativePtr: NativePtr): Int = TODO()
     }
 
