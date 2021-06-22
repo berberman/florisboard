@@ -22,10 +22,12 @@ android {
 
     defaultConfig {
         applicationId = "dev.patrickgold.florisboard"
-        minSdkVersion(23)
+        minSdkVersion(21)
         targetSdkVersion(30)
         versionCode(47)
         versionName("0.3.13")
+        ndkVersion = "23.0.7421159 rc5"
+
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -42,7 +44,11 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags("-std=c++17", "-fexceptions", "-frtti")
-                arguments("-DANDROID_STL=c++_static")
+                val ecm = System.getenv("ECM_DIR") ?: "/usr/share/ECM/cmake"
+                arguments(
+                    "-DANDROID_STL=c++_shared",
+                    "-DECM_DIR=${ecm}"
+                )
             }
         }
     }
@@ -53,6 +59,7 @@ android {
 
     externalNativeBuild {
         cmake {
+            version = "3.18.1"
             path("src/main/cpp/CMakeLists.txt")
         }
     }
