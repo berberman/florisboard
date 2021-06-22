@@ -29,16 +29,15 @@ value class SuggestionList private constructor(
             return SuggestionList(nativePtr)
         }
 
-        external fun nativeInitialize(maxSize: Int): NativePtr
-        external fun nativeDispose(nativePtr: NativePtr)
-
-        external fun nativeAdd(nativePtr: NativePtr, word: Word, freq: Freq): Boolean
-        external fun nativeClear(nativePtr: NativePtr)
-        external fun nativeContains(nativePtr: NativePtr, element: Word): Boolean
-        external fun nativeGetOrNull(nativePtr: NativePtr, index: Int): Word?
-        external fun nativeGetIsPrimaryTokenAutoInsert(nativePtr: NativePtr): Boolean
-        external fun nativeSetIsPrimaryTokenAutoInsert(nativePtr: NativePtr, v: Boolean)
-        external fun nativeSize(nativePtr: NativePtr): Int
+        /*external*/ fun nativeInitialize(maxSize: Int): NativePtr = TODO()
+        /*external*/ fun nativeDispose(nativePtr: NativePtr) = TODO()
+        /*external*/ fun nativeAdd(nativePtr: NativePtr, word: Word, freq: Freq): Boolean = TODO()
+        /*external*/ fun nativeClear(nativePtr: NativePtr) = TODO()
+        /*external*/ fun nativeContains(nativePtr: NativePtr, element: Word): Boolean = TODO()
+        /*external*/ fun nativeGetOrNull(nativePtr: NativePtr, index: Int): Word? = TODO()
+        /*external*/ fun nativeGetIsPrimaryTokenAutoInsert(nativePtr: NativePtr): Boolean = TODO()
+        /*external*/ fun nativeSetIsPrimaryTokenAutoInsert(nativePtr: NativePtr, v: Boolean) = TODO()
+        /*external*/ fun nativeSize(nativePtr: NativePtr): Int = TODO()
     }
 
     override val size: Int
