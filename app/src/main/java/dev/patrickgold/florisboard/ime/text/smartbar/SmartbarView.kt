@@ -37,7 +37,6 @@ import dev.patrickgold.florisboard.ime.core.Preferences
 import dev.patrickgold.florisboard.ime.core.Subtype
 import dev.patrickgold.florisboard.ime.keyboard.KeyboardState
 import dev.patrickgold.florisboard.ime.keyboard.updateKeyboardState
-import dev.patrickgold.florisboard.ime.nlp.SuggestionList
 import dev.patrickgold.florisboard.ime.text.key.KeyVariation
 import dev.patrickgold.florisboard.ime.text.keyboard.KeyboardMode
 import dev.patrickgold.florisboard.ime.theme.Theme
@@ -62,7 +61,6 @@ class SmartbarView : ConstraintLayout, KeyboardState.OnUpdateStateListener, Them
     private val themeManager = ThemeManager.default()
     private var eventListener: WeakReference<EventListener?> = WeakReference(null)
     private val mainScope = MainScope()
-    private var lastSuggestionInitDate: Long = 0
 
     private var cachedActionStartAreaVisible: Boolean = false
     @IdRes private var cachedActionStartAreaId: Int? = null
@@ -298,11 +296,10 @@ class SmartbarView : ConstraintLayout, KeyboardState.OnUpdateStateListener, Them
         }
     }
 
-    fun setCandidateSuggestionWords(suggestionInitDate: Long, suggestions: SuggestionList?) {
-        if (suggestionInitDate > lastSuggestionInitDate) {
-            lastSuggestionInitDate = suggestionInitDate
-            binding.candidates.updateCandidates(suggestions)
-        }
+    fun setCandidateSuggestionWords(suggestions: List<String>?) {
+        Timber.i("Set candidate B")
+
+        binding.candidates.updateCandidates(suggestions)
     }
 
     fun updateCandidateSuggestionCapsState() {
@@ -409,7 +406,7 @@ class SmartbarView : ConstraintLayout, KeyboardState.OnUpdateStateListener, Them
      */
     interface EventListener {
         fun onSmartbarBackButtonPressed() {}
-        fun onSmartbarCandidatePressed(word: String) {}
+        fun onSmartbarCandidatePressed(index: Int) {}
         fun onSmartbarClipboardCandidatePressed(clipboardItem: ClipboardItem) {}
         //fun onSmartbarCandidateLongPressed() {}
         fun onSmartbarPrivateModeButtonClicked() {}

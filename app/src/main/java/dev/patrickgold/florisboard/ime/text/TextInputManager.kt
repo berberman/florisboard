@@ -25,7 +25,6 @@ import dev.patrickgold.florisboard.databinding.FlorisboardBinding
 import dev.patrickgold.florisboard.debug.*
 import dev.patrickgold.florisboard.ime.clip.provider.ClipboardItem
 import dev.patrickgold.florisboard.ime.core.*
-import dev.patrickgold.florisboard.ime.dictionary.DictionaryManager
 import dev.patrickgold.florisboard.ime.extension.AssetManager
 import dev.patrickgold.florisboard.ime.extension.AssetRef
 import dev.patrickgold.florisboard.ime.extension.AssetSource
@@ -40,7 +39,12 @@ import dev.patrickgold.florisboard.ime.text.keyboard.*
 import dev.patrickgold.florisboard.ime.text.layout.LayoutManager
 import dev.patrickgold.florisboard.ime.text.smartbar.SmartbarView
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
+import me.rocka.fcitx5test.native.FcitxEvent
+import me.rocka.fcitx5test.native.JNI
 import org.json.JSONArray
+import timber.log.Timber
 
 /**
  * TextInputManager is responsible for managing everything which is related to text input. All of
@@ -59,7 +63,6 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
     var isGlidePostEffect: Boolean = false
     private val florisboard get() = FlorisBoard.getInstance()
     private val prefs get() = Preferences.default()
-    val symbolsWithSpaceAfter: List<String>
     private val activeEditorInstance: EditorInstance
         get() = florisboard.activeEditorInstance
 
@@ -69,7 +72,6 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
     private var textInputKeyboardView: TextKeyboardView? = null
     lateinit var textKeyboardIconSet: TextKeyboardIconSet
         private set
-    private val dictionaryManager: DictionaryManager get() = DictionaryManager.default()
     val inputEventDispatcher: InputEventDispatcher = InputEventDispatcher.new(
         repeatableKeyCodes = intArrayOf(
             KeyCode.ARROW_DOWN,
@@ -106,10 +108,25 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
 
     init {
         florisboard.addEventListener(this)
-        val data =
-            AssetManager.default().loadTextAsset(AssetRef(AssetSource.Assets, "ime/text/symbols-with-space.json")).getOrThrow()
-        val json = JSONArray(data)
-        this.symbolsWithSpaceAfter = List(json.length()){ json.getString(it) }
+        launch {
+        JNI.eventFlow.collect {
+                when (it) {
+                    is FcitxEvent.CandidateListEvent -> {
+                        Timber.i("Set candidate A")
+                        smartbarView?.setCandidateSuggestionWords(it.data.take(14))
+                    }
+                    is FcitxEvent.CommitStringEvent -> {
+                        activeEditorInstance.commitText(it.data)
+                    }
+                    is FcitxEvent.PreeditEvent -> {
+
+                    }
+                    is FcitxEvent.UnknownEvent -> {
+
+                    }
+                }
+            }
+        }
     }
 
     val evaluator = object : TextComputingEvaluator {
@@ -255,7 +272,6 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
         inputEventDispatcher.keyEventReceiver = null
         inputEventDispatcher.close()
 
-        dictionaryManager.unloadUserDictionariesIfNecessary()
 
         cancel()
         layoutManager.onDestroy()
@@ -325,13 +341,10 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
         }
         isGlidePostEffect = false
         updateCapsState()
-        smartbarView?.setCandidateSuggestionWords(System.nanoTime(), null)
+        smartbarView?.setCandidateSuggestionWords(null)
     }
 
     override fun onWindowShown() {
-        launch(Dispatchers.Default) {
-            dictionaryManager.loadUserDictionariesIfNecessary()
-        }
         textInputKeyboardView?.sync()
         smartbarView?.sync()
     }
@@ -374,9 +387,6 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
 
     override fun onSubtypeChanged(newSubtype: Subtype, doRefreshLayouts: Boolean) {
         launch {
-            if (activeState.isComposingEnabled) {
-                dictionaryManager.prepareDictionaries(newSubtype)
-            }
             if (prefs.glide.enabled) {
                 GlideTypingManager.getInstance().setWordData(newSubtype)
             }
@@ -401,25 +411,25 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
                 activeEditorInstance.shouldReevaluateComposingSuggestions = false
                 launch(Dispatchers.Default) {
                     val startTime = System.nanoTime()
-                    dictionaryManager.suggest(
-                        currentWord = activeEditorInstance.cachedInput.currentWord.text,
-                        preceidingWords = listOf(),
-                        subtype = florisboard.activeSubtype,
-                        allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive,
-                        maxSuggestionCount = 16
-                    ) { suggestions ->
-                        withContext(Dispatchers.Main) {
-                            smartbarView?.setCandidateSuggestionWords(startTime, suggestions)
-                            smartbarView?.updateCandidateSuggestionCapsState()
-                        }
-                    }
+//                    dictionaryManager.suggest(
+//                        currentWord = activeEditorInstance.cachedInput.currentWord.text,
+//                        preceidingWords = listOf(),
+//                        subtype = florisboard.activeSubtype,
+//                        allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive,
+//                        maxSuggestionCount = 16
+//                    ) { suggestions ->
+//                        withContext(Dispatchers.Main) {
+//                            smartbarView?.setCandidateSuggestionWords(startTime, suggestions)
+//                            smartbarView?.updateCandidateSuggestionCapsState()
+//                        }
+//                    }
                     if (BuildConfig.DEBUG) {
                         val elapsed = (System.nanoTime() - startTime) / 1000.0
                         flogInfo { "sugg fetch time: $elapsed us" }
                     }
                 }
             } else {
-                smartbarView?.setCandidateSuggestionWords(System.nanoTime(), null)
+                smartbarView?.setCandidateSuggestionWords(null)
             }
         }
     }
@@ -483,9 +493,10 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
         setActiveKeyboardMode(KeyboardMode.CHARACTERS)
     }
 
-    override fun onSmartbarCandidatePressed(word: String) {
+    override fun onSmartbarCandidatePressed(index: Int) {
         isGlidePostEffect = false
-        activeEditorInstance.commitCompletion(word)
+        JNI.selectCandidate(index)
+//        activeEditorInstance.commitCompletion(word)
     }
 
     override fun onSmartbarClipboardCandidatePressed(clipboardItem: ClipboardItem) {
@@ -534,7 +545,7 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
         if (isGlidePostEffect){
             handleDeleteWord()
             isGlidePostEffect = false
-            smartbarView?.setCandidateSuggestionWords(System.nanoTime(), null)
+            smartbarView?.setCandidateSuggestionWords(null)
         } else {
             isManualSelectionMode = false
             isManualSelectionModeStart = false
@@ -778,9 +789,18 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
             KeyCode.CLIPBOARD_PASTE -> activeEditorInstance.performClipboardPaste()
             KeyCode.CLIPBOARD_SELECT -> handleClipboardSelect()
             KeyCode.CLIPBOARD_SELECT_ALL -> activeEditorInstance.performClipboardSelectAll()
-            KeyCode.DELETE -> handleDelete()
-            KeyCode.DELETE_WORD -> handleDeleteWord()
-            KeyCode.ENTER -> handleEnter()
+            KeyCode.DELETE -> {
+                JNI.sendKeyToFcitx("Backspace")
+                handleDelete()
+            }
+            KeyCode.DELETE_WORD -> {
+                JNI.sendKeyToFcitx("Escape")
+                handleDeleteWord()
+            }
+            KeyCode.ENTER -> {
+                JNI.sendKeyToFcitx("Return")
+                handleEnter()
+            }
             KeyCode.INTERNAL_BATCH_EDIT -> {
                 florisboard.endInternalBatchEdit()
                 return
@@ -791,7 +811,10 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
             KeyCode.SHIFT -> handleShiftUp()
             KeyCode.SHIFT_LOCK -> handleShiftLock()
             KeyCode.SHOW_INPUT_METHOD_PICKER -> florisboard.imeManager?.showInputMethodPicker()
-            KeyCode.SPACE -> handleSpace(ev)
+            KeyCode.SPACE -> {
+                JNI.sendKeyToFcitx("Space")
+                handleSpace(ev)
+            }
             KeyCode.SWITCH_TO_MEDIA_CONTEXT -> florisboard.setActiveInput(R.id.media_input)
             KeyCode.SWITCH_TO_CLIPBOARD_CONTEXT -> florisboard.setActiveInput(R.id.clip_input)
             KeyCode.SWITCH_TO_TEXT_CONTEXT -> florisboard.setActiveInput(R.id.text_input, forceSwitchToCharacters = true)
@@ -814,7 +837,7 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
                         KeyType.CHARACTER,
                         KeyType.NUMERIC -> {
                             val text = data.asString(isForDisplay = false)
-                            if (isGlidePostEffect && (CachedInput.isWordComponent(text) || text.isDigitsOnly())) {
+                            if (isGlidePostEffect && (text.isDigitsOnly())) {
                                 activeEditorInstance.commitText(" ")
                             }
                             activeEditorInstance.commitText(text)
@@ -823,7 +846,7 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
                             KeyCode.PHONE_PAUSE,
                             KeyCode.PHONE_WAIT -> {
                                 val text = data.asString(isForDisplay = false)
-                                if (isGlidePostEffect && (CachedInput.isWordComponent(text) || text.isDigitsOnly())) {
+                                if (isGlidePostEffect && (text.isDigitsOnly())) {
                                     activeEditorInstance.commitText(" ")
                                 }
                                 activeEditorInstance.commitText(text)
@@ -833,10 +856,11 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
                     else -> when (data.type) {
                         KeyType.CHARACTER, KeyType.NUMERIC ->{
                             val text = data.asString(isForDisplay = false)
-                            if (isGlidePostEffect && (CachedInput.isWordComponent(text) || text.isDigitsOnly())) {
+                            if (isGlidePostEffect && (text.isDigitsOnly())) {
                                 activeEditorInstance.commitText(" ")
                             }
-                            activeEditorInstance.commitText(text)
+                            JNI.sendKeyToFcitx(text)
+//                            activeEditorInstance.commitText(text)
                         }
                         else -> {
                             flogError(LogTopic.KEY_EVENTS) { "Received unknown key: $data" }

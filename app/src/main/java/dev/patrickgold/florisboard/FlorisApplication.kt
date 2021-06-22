@@ -22,7 +22,6 @@ import dev.patrickgold.florisboard.debug.Flog
 import dev.patrickgold.florisboard.debug.LogTopic
 import dev.patrickgold.florisboard.ime.core.Preferences
 import dev.patrickgold.florisboard.ime.core.SubtypeManager
-import dev.patrickgold.florisboard.ime.dictionary.DictionaryManager
 import dev.patrickgold.florisboard.ime.extension.AssetManager
 import dev.patrickgold.florisboard.ime.theme.ThemeManager
 import timber.log.Timber
@@ -45,7 +44,6 @@ class FlorisApplication : Application() {
         val prefs = Preferences.initDefault(this)
         val assetManager = AssetManager.init(this)
         SubtypeManager.init(this)
-        DictionaryManager.init(this)
         ThemeManager.init(this, assetManager)
         prefs.initDefaultPreferences()
     }

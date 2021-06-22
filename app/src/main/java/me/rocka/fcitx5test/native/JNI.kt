@@ -1,9 +1,20 @@
 package me.rocka.fcitx5test.native
 
-import android.util.Log
-//import org.greenrobot.eventbus.EventBus
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
+import timber.log.Timber
 
-object JNI {
+
+object JNI : CoroutineScope by CoroutineScope(Dispatchers.IO) {
+
+    private val eventFlow_ =
+        MutableSharedFlow<FcitxEvent<*>>(extraBufferCapacity = 15, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    val eventFlow = eventFlow_.asSharedFlow()
 
     init {
         System.loadLibrary("native-lib")
@@ -27,8 +38,10 @@ object JNI {
      */
     @Suppress("unused")
     private fun handleFcitxEvent(type: Int, vararg params: Any) {
-//        EventBus.getDefault().post(FcitxEvent.create(type, params.asList()))
-        Log.d("FcitxEvent", "type: ${type}, args: ${params.run { "[$size]" + joinToString(",") }}")
+        launch {
+            eventFlow_.emit(FcitxEvent.create(type, params.asList()))
+            Timber.d("Fcitx Event: type ${type}, args ${params.run { "[$size]" + joinToString(",") }}")
+        }
     }
 
 }

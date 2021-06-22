@@ -65,9 +65,6 @@ class EditorInstance private constructor(
     var shouldReevaluateComposingSuggestions: Boolean = false
     var selection: Selection = Selection(this)
         private set
-    var isPhantomSpaceActive: Boolean = false
-        private set
-    private var wasPhantomSpaceActiveLastUpdate: Boolean = false
 
     companion object {
         fun default(): EditorInstance {
@@ -120,18 +117,13 @@ class EditorInstance private constructor(
         } else {
             selection.update(newSelStart, newSelEnd)
         }
-        if (isPhantomSpaceActive && wasPhantomSpaceActiveLastUpdate) {
-            isPhantomSpaceActive = false
-        } else if (isPhantomSpaceActive && !wasPhantomSpaceActiveLastUpdate) {
-            wasPhantomSpaceActiveLastUpdate = true
-        }
         if (selection.isCursorMode) {
             cachedInput.update()
             if (activeState.isComposingEnabled) {
                 if (candidatesStart >= 0 && candidatesEnd >= 0) {
                     shouldReevaluateComposingSuggestions = true
                 }
-                if (activeState.isRichInputEditor && !isPhantomSpaceActive) {
+                if (activeState.isRichInputEditor) {
                     markComposingRegion(cachedInput.currentWord)
                 } else if (newSelStart >= 0) {
                     markComposingRegion(null)
@@ -166,12 +158,7 @@ class EditorInstance private constructor(
             false
         } else {
             ic.beginBatchEdit()
-            if (isPhantomSpaceActive && selection.start > 0 && getTextBeforeCursor(1) != " ") {
-                ic.commitText(" ", 1)
-            }
             ic.setComposingText(text, 1)
-            isPhantomSpaceActive = true
-            wasPhantomSpaceActiveLastUpdate = false
             markComposingRegion(null)
             ic.endBatchEdit()
             true
@@ -215,26 +202,8 @@ class EditorInstance private constructor(
             doCommitText(text).first
         } else {
             ic.beginBatchEdit()
-            val isWordComponent = CachedInput.isWordComponent(text)
-            val isPhantomSpace = isPhantomSpaceActive && selection.start > 0 && getTextBeforeCursor(1) != " "
-            when {
-                isPhantomSpace && isWordComponent -> {
-                    ic.finishComposingText()
-                    ic.commitText(" ", 1)
-                    ic.setComposingText(text, 1)
-                }
-                !isPhantomSpace && isWordComponent -> {
-                    ic.finishComposingText()
-                    val finalText = doCommitText(text).second
-                    ic.setComposingRegion(cachedInput.currentWord.start, cachedInput.currentWord.end + finalText.length)
-                }
-                else -> {
-                    ic.finishComposingText()
-                    ic.commitText(text, 1)
-                }
-            }
-            isPhantomSpaceActive = false
-            wasPhantomSpaceActiveLastUpdate = false
+            ic.finishComposingText()
+            ic.commitText(text, 1)
             ic.endBatchEdit()
             true
         }
@@ -252,9 +221,8 @@ class EditorInstance private constructor(
             ic.finishComposingText()
             if (selection.start > 0) {
                 val previous = getTextBeforeCursor(1)
-                if (CachedInput.isWordComponent(previous) ||
-                    previous.isDigitsOnly() ||
-                    previous in TextInputManager.getInstance().symbolsWithSpaceAfter
+                if (
+                    previous.isDigitsOnly()
                 ) {
                     ic.commitText(" ", 1)
                 }
@@ -310,8 +278,6 @@ class EditorInstance private constructor(
      * @return True on success, false if an error occurred or the input connection is invalid.
      */
     fun deleteBackwards(): Boolean {
-        isPhantomSpaceActive = false
-        wasPhantomSpaceActiveLastUpdate = false
         return sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL)
     }
 
@@ -326,8 +292,6 @@ class EditorInstance private constructor(
      */
     fun deleteWordsBeforeCursor(n: Int): Boolean {
         val ic = inputConnection ?: return false
-        isPhantomSpaceActive = false
-        wasPhantomSpaceActiveLastUpdate = false
         return if (n < 1 || activeState.isRawInputEditor || !selection.isValid || !selection.isCursorMode) {
             false
         } else {
@@ -408,8 +372,6 @@ class EditorInstance private constructor(
      * @return True on success, false if no new words are selected.
      */
     fun leftAppendWordToSelection(): Boolean {
-        isPhantomSpaceActive = false
-        wasPhantomSpaceActiveLastUpdate = false
         // no words left to select
         if (selection.start <= 0) {
             return false
@@ -428,8 +390,6 @@ class EditorInstance private constructor(
      * @return True on success, false if no new words are deselected.
      */
     fun leftPopWordFromSelection(): Boolean {
-        isPhantomSpaceActive = false
-        wasPhantomSpaceActiveLastUpdate = false
         // no words left to pop
         if (selection.start >= selection.end) {
             return false
@@ -468,8 +428,6 @@ class EditorInstance private constructor(
      */
     fun performClipboardCut(): Boolean {
         Timber.d("performClipboardCut")
-        isPhantomSpaceActive = false
-        wasPhantomSpaceActiveLastUpdate = false
         florisClipboardManager.addNewPlaintext(selection.text)
         return sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL)
     }
@@ -482,8 +440,6 @@ class EditorInstance private constructor(
      */
     fun performClipboardCopy(): Boolean {
         Timber.d("performClipboardCopy")
-        isPhantomSpaceActive = false
-        wasPhantomSpaceActiveLastUpdate = false
         florisClipboardManager.addNewPlaintext(selection.text)
         return selection.updateAndNotify(selection.end, selection.end)
     }
@@ -495,8 +451,6 @@ class EditorInstance private constructor(
      * @return True on success, false if an error occurred or the input connection is invalid.
      */
     fun performClipboardPaste(): Boolean {
-        isPhantomSpaceActive = false
-        wasPhantomSpaceActiveLastUpdate = false
         Timber.d("Before commit clip data")
         return commitClipboardItem(florisClipboardManager.primaryClip!!)
     }
@@ -508,8 +462,6 @@ class EditorInstance private constructor(
      * @return True on success, false if an error occurred or the input connection is invalid.
      */
     fun performClipboardSelectAll(): Boolean {
-        isPhantomSpaceActive = false
-        wasPhantomSpaceActiveLastUpdate = false
         markComposingRegion(null)
         val ic = inputConnection ?: return false
         if (activeState.isRawInputEditor) {
@@ -526,8 +478,6 @@ class EditorInstance private constructor(
      * @return True on success, false if an error occurred or the input connection is invalid.
      */
     fun performEnter(): Boolean {
-        isPhantomSpaceActive = false
-        wasPhantomSpaceActiveLastUpdate = false
         return if (activeState.isRawInputEditor) {
             sendDownUpKeyEvent(KeyEvent.KEYCODE_ENTER)
         } else {
@@ -543,8 +493,6 @@ class EditorInstance private constructor(
      * @return True on success, false if an error occurred or the input connection is invalid.
      */
     fun performEnterAction(action: ImeOptions.EnterAction): Boolean {
-        isPhantomSpaceActive = false
-        wasPhantomSpaceActiveLastUpdate = false
         val ic = inputConnection ?: return false
         return ic.performEditorAction(action.toInt())
     }
@@ -555,8 +503,6 @@ class EditorInstance private constructor(
      * @return True on success, false if an error occurred or the input connection is invalid.
      */
     fun performUndo(): Boolean {
-        isPhantomSpaceActive = false
-        wasPhantomSpaceActiveLastUpdate = false
         return sendDownUpKeyEvent(KeyEvent.KEYCODE_Z, meta(ctrl = true))
     }
 
@@ -566,8 +512,6 @@ class EditorInstance private constructor(
      * @return True on success, false if an error occurred or the input connection is invalid.
      */
     fun performRedo(): Boolean {
-        isPhantomSpaceActive = false
-        wasPhantomSpaceActiveLastUpdate = false
         return sendDownUpKeyEvent(KeyEvent.KEYCODE_Z, meta(ctrl = true, shift = true))
     }
 
@@ -812,9 +756,6 @@ class CachedInput(private val editorInstance: EditorInstance) {
         private val WORD_EVAL_REGEX = """[^\p{L}\']""".toRegex()
         private val WORD_SPLIT_REGEX_EN = """((?<=$WORD_EVAL_REGEX)|(?=$WORD_EVAL_REGEX))""".toRegex()
 
-        fun isWordComponent(string: String): Boolean {
-            return !WORD_EVAL_REGEX.matches(string)
-        }
     }
 
     /**
@@ -898,11 +839,7 @@ class CachedInput(private val editorInstance: EditorInstance) {
             for (word in words) {
                 if (word.isNotEmpty() && !word.matches(wordRegex)) {
                     if (selStart >= pos && selStart <= (pos + word.length)) {
-                        if (!editorInstance.isPhantomSpaceActive) {
-                            currentWord.update(pos + offset, pos + offset + word.length)
-                        } else {
-                            wordsBeforeCurrent.add(Region(editorInstance, pos + offset, pos + offset + word.length))
-                        }
+                        currentWord.update(pos + offset, pos + offset + word.length)
                     } else if (pos < selStart) {
                         wordsBeforeCurrent.add(Region(editorInstance, pos + offset, pos + offset + word.length))
                     } else {

@@ -89,6 +89,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import me.rocka.fcitx5test.native.JNI
+import me.rocka.fcitx5test.native.copyFileOrDir
 import java.lang.ref.WeakReference
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.ExecutorService
@@ -180,7 +182,17 @@ open class FlorisBoard : InputMethodService(), LifecycleOwner, FlorisClipboardMa
             mediaInputManager = MediaInputManager.getInstance()
             clipInputManager = ClipboardInputManager.getInstance()
 
-            System.loadLibrary("florisboard-native")
+           lifecycleScope.launchWhenCreated {
+               withContext(Dispatchers.IO) {
+                   copyFileOrDir("fcitx5")
+                   JNI.startupFcitx(
+                       applicationInfo.dataDir,
+                       applicationInfo.nativeLibraryDir,
+                       getExternalFilesDir(null)!!.absolutePath + "/config",
+                       "${applicationInfo.dataDir}/fcitx5/libime"
+                   )
+               }
+           }
         } catch (e: Exception) {
             CrashUtility.stageException(e)
         }

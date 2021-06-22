@@ -22,8 +22,6 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import dev.patrickgold.florisboard.R
 import dev.patrickgold.florisboard.ime.core.Preferences
-import dev.patrickgold.florisboard.ime.dictionary.DictionaryManager
-import dev.patrickgold.florisboard.ime.dictionary.FlorisUserDictionaryDatabase
 
 class AdvancedFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -32,22 +30,6 @@ class AdvancedFragment : PreferenceFragmentCompat() {
 
     override fun onPreferenceTreeClick(preference: Preference?): Boolean {
         return when (preference?.key) {
-            Preferences.Devtools.CLEAR_UDM_INTERNAL_DATABASE -> {
-                AlertDialog.Builder(requireContext()).apply {
-                    setTitle(R.string.assets__action__delete_confirm_title)
-                    setMessage(String.format(resources.getString(R.string.assets__action__delete_confirm_message), FlorisUserDictionaryDatabase.DB_FILE_NAME))
-                    setPositiveButton(R.string.assets__action__delete) { _, _ ->
-                        DictionaryManager.default().let {
-                            it.loadUserDictionariesIfNecessary()
-                            it.florisUserDictionaryDao()?.deleteAll()
-                        }
-                    }
-                    setNegativeButton(android.R.string.cancel, null)
-                    create()
-                    show()
-                }
-                true
-            }
             else -> super.onPreferenceTreeClick(preference)
         }
     }

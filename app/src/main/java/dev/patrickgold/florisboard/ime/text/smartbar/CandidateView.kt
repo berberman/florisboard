@@ -37,7 +37,6 @@ import androidx.core.view.isVisible
 import dev.patrickgold.florisboard.R
 import dev.patrickgold.florisboard.ime.clip.FlorisClipboardManager
 import dev.patrickgold.florisboard.ime.clip.provider.ClipboardItem
-import dev.patrickgold.florisboard.ime.nlp.SuggestionList
 import dev.patrickgold.florisboard.ime.theme.Theme
 import dev.patrickgold.florisboard.ime.theme.ThemeManager
 import dev.patrickgold.florisboard.ime.theme.ThemeValue
@@ -115,7 +114,7 @@ class CandidateView : View, ThemeManager.OnThemeUpdatedListener {
         velocityTracker = null
     }
 
-    fun updateCandidates(newCandidates: SuggestionList?) {
+    fun updateCandidates(newCandidates: List<String>?) {
         if (candidates.isEmpty() && (newCandidates == null || newCandidates.isEmpty())) {
             return // no need to recompute anything
         }
@@ -323,7 +322,7 @@ class CandidateView : View, ThemeManager.OnThemeUpdatedListener {
         computedCandidates.getOrNull(index)?.let { candidate ->
             when (candidate) {
                 is ComputedCandidate.Word -> {
-                    eventListener.get()?.onSmartbarCandidatePressed(candidate.word)
+                    eventListener.get()?.onSmartbarCandidatePressed(index)
                 }
                 is ComputedCandidate.Clip -> {
                     eventListener.get()?.onSmartbarClipboardCandidatePressed(candidate.clipboardItem)
