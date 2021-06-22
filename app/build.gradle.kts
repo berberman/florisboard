@@ -9,6 +9,7 @@ plugins {
 android {
     compileSdkVersion(30)
     buildToolsVersion("30.0.3")
+    ndkVersion = "23.0.7421159 rc5"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -26,8 +27,6 @@ android {
         targetSdkVersion(30)
         versionCode(47)
         versionName("0.3.13")
-        ndkVersion = "23.0.7421159 rc5"
-
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -50,6 +49,9 @@ android {
                     "-DECM_DIR=${ecm}"
                 )
             }
+        }
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
         }
     }
 
