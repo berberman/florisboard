@@ -173,6 +173,8 @@ open class FlorisBoard : InputMethodService(), LifecycleOwner, FlorisClipboardMa
 
     var isClipboardContextMenuShown = false
 
+    private var fcitxtJob : Job? = null
+
     init {
         // MUST WRAP all code within Service init in try..catch to prevent any crash loops
         try {
@@ -183,15 +185,7 @@ open class FlorisBoard : InputMethodService(), LifecycleOwner, FlorisClipboardMa
             clipInputManager = ClipboardInputManager.getInstance()
 
            lifecycleScope.launchWhenCreated {
-               withContext(Dispatchers.IO) {
-                   copyFileOrDir("fcitx5")
-                   JNI.startupFcitx(
-                       applicationInfo.dataDir,
-                       applicationInfo.nativeLibraryDir,
-                       getExternalFilesDir(null)!!.absolutePath + "/config",
-                       "${applicationInfo.dataDir}/fcitx5/libime"
-                   )
-               }
+               fcitxtJob = JNI.startupFcitx(this@FlorisBoard)
            }
         } catch (e: Exception) {
             CrashUtility.stageException(e)
@@ -348,6 +342,8 @@ open class FlorisBoard : InputMethodService(), LifecycleOwner, FlorisClipboardMa
 
         eventListeners.toList().forEach { it?.onDestroy() }
         eventListeners.clear()
+        fcitxtJob?.cancel()
+        fcitxtJob = null
         super.onDestroy()
     }
 

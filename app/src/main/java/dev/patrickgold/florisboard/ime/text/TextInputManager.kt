@@ -342,6 +342,7 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
         isGlidePostEffect = false
         updateCapsState()
         smartbarView?.setCandidateSuggestionWords(null)
+        JNI.sendKeyToFcitx("Escape")
     }
 
     override fun onWindowShown() {
@@ -430,6 +431,7 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
                 }
             } else {
                 smartbarView?.setCandidateSuggestionWords(null)
+                JNI.sendKeyToFcitx("Escape")
             }
         }
     }
@@ -546,6 +548,7 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
             handleDeleteWord()
             isGlidePostEffect = false
             smartbarView?.setCandidateSuggestionWords(null)
+            JNI.sendKeyToFcitx("Escape")
         } else {
             isManualSelectionMode = false
             isManualSelectionModeStart = false
@@ -790,11 +793,10 @@ class TextInputManager private constructor() : CoroutineScope by MainScope(), In
             KeyCode.CLIPBOARD_SELECT -> handleClipboardSelect()
             KeyCode.CLIPBOARD_SELECT_ALL -> activeEditorInstance.performClipboardSelectAll()
             KeyCode.DELETE -> {
-                JNI.sendKeyToFcitx("Backspace")
+                JNI.sendKeyToFcitx("BackSpace")
                 handleDelete()
             }
             KeyCode.DELETE_WORD -> {
-                JNI.sendKeyToFcitx("Escape")
                 handleDeleteWord()
             }
             KeyCode.ENTER -> {
