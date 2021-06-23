@@ -1,7 +1,6 @@
 package me.rocka.fcitx5test.native
 
 import android.content.Context
-import android.view.KeyCharacterMap
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -31,4 +30,3 @@ private fun Context.copyFile(filename: String) = runCatching {
     }
     Unit
 }.getOrThrow()
-
