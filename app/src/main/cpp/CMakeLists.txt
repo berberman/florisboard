@@ -1,48 +1,74 @@
-# For more information about using CMake with Android Studio, read the
-# documentation: https://d.android.com/studio/projects/add-native-code.html
+cmake_minimum_required(VERSION 3.18)
 
-cmake_minimum_required(VERSION 3.10.2)
+project(fcitx-lib)
 
-project("florisboard")
+set(ANDROID_STL c++_shared)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(.)
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-### ICU4C ###
-include_directories(../icu4c/prebuilt/include)
-set(JNI_LIBS ${CMAKE_SOURCE_DIR}/../icu4c/prebuilt/jniLibs/${ANDROID_ABI})
-add_library(ICU::data STATIC IMPORTED)
-set_property(TARGET ICU::data PROPERTY IMPORTED_LOCATION "${JNI_LIBS}/libicudata.a")
-add_library(ICU::uc STATIC IMPORTED)
-set_property(TARGET ICU::uc PROPERTY IMPORTED_LOCATION "${JNI_LIBS}/libicuuc.a")
+# extra-cmake-modules
+if(DEFINED ENV{ECM_DIR})
+    set(ECM_DIR $ENV{ECM_DIR})
+else()
+    set(ECM_DIR /usr/share/ECM/cmake)
+endif()
 
-### FlorisBoard ###
-add_subdirectory(nuspell)
-add_subdirectory(utils)
-add_subdirectory(ime/nlp)
-add_subdirectory(ime/spelling)
+set(PREBUILT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/prebuilt/")
 
-add_library(
-        florisboard-native
-        SHARED
-        dev_patrickgold_florisboard_FlorisApplication.cpp
-        dev_patrickgold_florisboard_ime_nlp_SuggestionList.cpp
-        dev_patrickgold_florisboard_ime_spelling_SpellingDict.cpp
-)
+# prebuilt fmt
+set(fmt_DIR "${PREBUILT_DIR}/fmt/${ANDROID_ABI}/lib/cmake/fmt")
 
-target_compile_options(florisboard-native PRIVATE -ffunction-sections -fdata-sections -fexceptions)
-target_link_libraries(
-        # Destination
-        florisboard-native
+# prebuilt libintl-lite
+set(LibIntl_DIR "${PREBUILT_DIR}/libintl-lite/${ANDROID_ABI}/lib/cmake")
+find_package(LibIntl)
+add_library(LibIntl::LibIntl ALIAS intl)
 
-        # Sources
-        android
-        log
-        ICU::uc
-        ICU::data
-        Nuspell::nuspell
-        utils
-        ime-nlp
-        ime-spelling
-)
+# prebuilt libevent
+set(Libevent_DIR "${PREBUILT_DIR}/libevent/${ANDROID_ABI}/lib/cmake/libevent")
+set(LIBEVENT_STATIC_LINK ON)
+find_package(Libevent)
+
+option(ENABLE_TEST "" OFF)
+option(ENABLE_COVERAGE "" OFF)
+option(ENABLE_ENCHANT "" OFF)
+option(ENABLE_X11 "" OFF)
+option(ENABLE_WAYLAND "" OFF)
+option(ENABLE_DBUS "" OFF)
+option(ENABLE_DOC "" OFF)
+option(ENABLE_SERVER "" OFF)
+option(ENABLE_KEYBOARD "" OFF)
+option(USE_SYSTEMD "" OFF)
+option(ENABLE_XDGAUTOSTART "" OFF)
+option(ENABLE_EMOJI "" OFF)
+option(ENABLE_LIBUUID "" OFF)
+add_subdirectory(fcitx5)
+
+add_subdirectory(androidfrontend)
+
+# prebuilt boost
+set(BOOST_VERSION "1.76.0")
+set(BOOST_MODULES headers filesystem iostreams regex)
+set(BOOST_ROOT "${PREBUILT_DIR}/boost/${ANDROID_ABI}")
+set(Boost_DIR "${BOOST_ROOT}/lib/cmake/Boost-${BOOST_VERSION}/")
+foreach(mod IN LISTS BOOST_MODULES)
+    set("boost_${mod}_DIR" "${BOOST_ROOT}/lib/cmake/boost_${mod}-${BOOST_VERSION}/")
+endforeach()
+
+option(ENABLE_TEST "" OFF)
+set(_Fcitx5Macro_SELF_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fcitx5/src/lib/fcitx-utils)
+add_subdirectory(libime)
+
+option(ENABLE_TEST "" OFF)
+option(ENABLE_OPENCC "" OFF)
+option(ENABLE_GUI "" OFF)
+option(ENABLE_BROWSER "" OFF)
+option(USE_WEBKIT "" OFF)
+option(ENABLE_CLOUDPINYIN "" OFF)
+add_subdirectory(fcitx5-chinese-addons)
+
+add_library(native-lib SHARED native-lib.cpp)
+find_library(Libc c)
+find_library(AndroidLog log)
+target_link_libraries(native-lib ${Libc} ${AndroidLog} Fcitx5::Core)

@@ -8,7 +8,7 @@ plugins {
 android {
     compileSdk = 30
     buildToolsVersion = "30.0.3"
-    ndkVersion = "22.1.7171670"
+    ndkVersion = "23.0.7599858"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -39,29 +39,11 @@ android {
             }
         }
 
-        externalNativeBuild {
-            cmake {
-                cFlags("-fvisibility=hidden", "-DU_STATIC_IMPLEMENTATION=1")
-                cppFlags("-fvisibility=hidden", "-std=c++17", "-fexceptions", "-ffunction-sections", "-fdata-sections", "-DU_DISABLE_RENAMING=1", "-DU_STATIC_IMPLEMENTATION=1")
-                arguments("-DANDROID_STL=c++_static")
-            }
-        }
-
         ndk {
             //abiFilters += listOf("x86", "x86_64", "armeabi-v7a", "arm64-v8a")
             abiFilters += listOf("armeabi-v7a", "arm64-v8a")
         }
 
-        sourceSets {
-            maybeCreate("main").apply {
-                assets {
-                    srcDirs("src/main/assets", "src/main/icu4c/prebuilt/assets")
-                }
-                jniLibs {
-                    srcDirs("src/main/icu4c/prebuilt/jniLibs")
-                }
-            }
-        }
     }
 
     buildFeatures {
@@ -70,6 +52,7 @@ android {
 
     externalNativeBuild {
         cmake {
+            version = "3.18.1"
             path("src/main/cpp/CMakeLists.txt")
         }
     }

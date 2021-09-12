@@ -1,0 +1,45 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+      - uses: android-actions/setup-android@v2
+      - run: sdkmanager --install "ndk;23.0.7599858"
+      - run: sdkmanager --install "cmake;3.18.1"
+      - run: sudo apt install -y extra-cmake-modules
+      - uses: burrunan/gradle-cache-action@v1
+        name: Build
+        with:
+          arguments: assembleDebug
+          gradle-version: wrapper
+      - name: Send success notification to telegram
+        if: ${{ success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/master'}}
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
+          disable_web_page_preview: true
+          message: "Job [${{ github.workflow }} / ${{ github.job }} (${{ github.event_name }}) #${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) by [${{ github.actor }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) succeed ✔"
+      - name: Send failure notification to telegram
+        if: ${{ failure() && github.event_name != 'pull_request' && github.ref == 'refs/heads/master'}}
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
+          disable_web_page_preview: true
+          message: "Job [${{ github.workflow }} / ${{ github.job }} (${{ github.event_name }}) #${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) by [${{ github.actor }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) failed ✘"

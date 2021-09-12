@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/activity_main_mock_input"
+        android:icon="@drawable/ic_baseline_input_24"
+        android:title="mockInput()"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/activity_main_reset"
+        android:icon="@drawable/ic_baseline_settings_backup_restore_24"
+        android:title="fcitx.reset()"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/activity_main_empty"
+        android:icon="@drawable/ic_baseline_indeterminate_check_box_24"
+        android:title="fcitx.empty()"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/activity_main_get_available"
+        android:icon="@drawable/ic_baseline_format_list_bulleted_24"
+        android:title="fcitx.listIme()"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/activity_main_set_enabled"
+        android:icon="@drawable/ic_baseline_list_alt_24"
+        android:title="fcitx.setEnabledIme()"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/activity_main_addons"
+        android:icon="@drawable/ic_baseline_extension_24"
+        android:title="fcitx.addons()"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/activity_main_save_config"
+        android:icon="@drawable/ic_baseline_save_24"
+        android:title="fcitx.saveConfig()"
+        app:showAsAction="never" />
+
+</menu>
